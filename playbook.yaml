@@ -2,6 +2,7 @@
   become: true
 
   vars:
+    telegraf_agent_version: 1.17.0
     telegraf_agent_output:
       - type: influxdb
         config:

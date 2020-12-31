@@ -12,3 +12,6 @@ onecloud_tenant_id: 1d45a9fd92cc4f458d737765d6c2e7dd
 
 # domain id of onecloud vm
 onecloud_domain_id: 44494587a5f1440284047fb990826ef1
+
+telegraf_agent_package_method: offline
+telegraf_agent_package_local_path: ""

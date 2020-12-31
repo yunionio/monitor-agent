@@ -1,0 +1,45 @@
+- hosts: all
+  become: true
+
+  vars:
+    telegraf_agent_output:
+      - type: influxdb
+        config:
+          - urls = ["{{ influxdb_url }}"]
+          - database = "{{ influxdb_name }}"
+          - insecure_skip_verify = true
+    telegraf_plugins_default:
+      - plugin: cpu
+        config:
+          - percpu = true
+          - totalcpu = true
+          - collect_cpu_time = false
+          - report_active = true
+      - plugin: disk
+        config:
+          - ignore_fs = ["tmpfs", "devtmpfs", "overlay", "squashfs", "iso9660"]
+      - plugin: diskio
+        config:
+          - skip_serial_number = false
+          - excludes = "^nbd"
+      - plugin: kernel
+      - plugin: kernel_vmstat
+      - plugin: mem
+      - plugin: processes
+      - plugin: swap
+      - plugin: system
+      - plugin: net
+      - plugin: netstat
+      - plugin: nstat
+      - plugin: ntpq
+        config:
+          - dns_lookup = false
+      - plugin: internal
+        config:
+          - collect_memstats = false
+      - plugin: http_listener_v2
+        config:
+          - service_address = ":8087"
+        
+  roles:
+    - role: ansible-telegraf

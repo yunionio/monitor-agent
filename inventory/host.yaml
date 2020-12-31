@@ -1,0 +1,2 @@
+[all]
+# vm1 ansible_host=10.100.101.12 # onecloud_vm_id=12345 onecloud_tenant_id=12345

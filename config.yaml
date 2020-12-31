@@ -1,17 +1,18 @@
 # url of influxdb to store monitoring data
-influxdb_url: https://default-influxdb:30086
+influxdb_url: https://192.168.222.171:30086
 
 # database name of influxdb
 influxdb_name: telegraf
 
 # id of onecloud vm
-onecloud_vm_id: 384a6d3f-ac05-43ce-8585-8c826af59e95
+onecloud_vm_id: b18d35f4-5e18-4d1e-87de-c3b98d8371fd
 
 # project id of onecloud vm
-onecloud_tenant_id: 1d45a9fd92cc4f458d737765d6c2e7dd
+onecloud_tenant_id: a7f2e2a81a1e4850a41eae5f140ceb14
 
 # domain id of onecloud vm
-onecloud_domain_id: 44494587a5f1440284047fb990826ef1
+onecloud_domain_id: default
 
 telegraf_agent_package_method: offline
-telegraf_agent_package_local_path: ""
+telegraf_agent_version: 1.17.0
+telegraf_agent_package_local_dir: "/root"

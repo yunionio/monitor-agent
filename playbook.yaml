@@ -22,7 +22,6 @@
       - plugin: diskio
         config:
           - skip_serial_number = false
-          - excludes = "^nbd"
       - plugin: kernel
       - plugin: kernel_vmstat
       - plugin: mem

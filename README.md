@@ -4,4 +4,4 @@
 
 modify `inventory/hosts.yaml` and `config.yaml`
 
-execute `ansible-playbook -i inventory/hosts.yaml -e config.yaml playbook.yaml`
+execute `ansible-playbook -i inventory/hosts.yaml -e @config.yaml playbook.yaml`

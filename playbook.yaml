@@ -37,9 +37,6 @@
       - plugin: internal
         config:
           - collect_memstats = false
-      - plugin: http_listener_v2
-        config:
-          - service_address = ":8087"
         
   roles:
     - role: ansible-telegraf

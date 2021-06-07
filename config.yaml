@@ -12,6 +12,8 @@ onecloud_tenant_id: a7f2e2a81a1e4850a41eae5f140ceb14
 
 # domain id of onecloud vm
 onecloud_domain_id: default
+ 
+telegraf_global_tags: []
 
 telegraf_agent_package_method: offline
 telegraf_agent_version: 1.17.0

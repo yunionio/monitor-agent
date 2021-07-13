@@ -16,5 +16,4 @@ onecloud_domain_id: default
 telegraf_global_tags: []
 
 telegraf_agent_package_method: offline
-telegraf_agent_version: 1.17.0
 telegraf_agent_package_local_dir: "/root"

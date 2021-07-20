@@ -3,6 +3,7 @@
 
   vars:
     telegraf_agent_version: 1.5.0~yn
+    telegraf_agent_disable_version: (yn-release-1\.5)|(v1\.5\.0~5d6622e)
     telegraf_agent_omit_hostname: True
     telegraf_agent_output:
       - type: influxdb

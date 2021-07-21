@@ -2,6 +2,7 @@
   become: true
 
   vars:
+    server_type: guest
     telegraf_agent_version: 1.5.0~yn
     telegraf_agent_disable_version: (yn-release-1\.5)|(v1\.5\.0~5d6622e)
     telegraf_agent_omit_hostname: True
@@ -11,57 +12,121 @@
           - urls = ["{{ influxdb_url }}"]
           - database = "{{ influxdb_name }}"
           - insecure_skip_verify = true
-    telegraf_plugins_default:
-      - plugin: cpu
-        config:
-          - name_prefix = "agent_"
-          - percpu = true
-          - totalcpu = true
-          - collect_cpu_time = false
-          - report_active = true
-      - plugin: disk
-        config:
-          - name_prefix = "agent_"
-          - ignore_fs = ["tmpfs", "devtmpfs", "overlay", "squashfs", "iso9660"]
-      - plugin: diskio
-        config:
-          - name_prefix = "agent_"
-          - skip_serial_number = false
-      - plugin: kernel
-        config:
-          - name_prefix = "agent_"
-      - plugin: kernel_vmstat
-        config:
-          - name_prefix = "agent_"
-      - plugin: mem
-        config:
-          - name_prefix = "agent_"
-      - plugin: processes
-        config:
-          - name_prefix = "agent_"
-      - plugin: swap
-        config:
-          - name_prefix = "agent_"
-      - plugin: system
-        config:
-          - name_prefix = "agent_"
-      - plugin: net
-        config:
-          - name_prefix = "agent_"
-      - plugin: netstat
-        config:
-          - name_prefix = "agent_"
-      - plugin: nstat
-        config:
-          - name_prefix = "agent_"
-      - plugin: ntpq
-        config:
-          - name_prefix = "agent_"
-          - dns_lookup = false
-      - plugin: internal
-        config:
-          - name_prefix = "agent_"
-          - collect_memstats = false
-        
-  roles:
-    - role: ansible-telegraf
+
+  tasks:
+    - name: "Deploy monitor agent for Guest" 
+      include_role:
+        name: ansible-telegraf
+      vars:
+        telegraf_plugins_default:
+          - plugin: cpu
+            config:
+              - name_prefix = "agent_"
+              - percpu = true
+              - totalcpu = true
+              - collect_cpu_time = false
+              - report_active = true
+          - plugin: disk
+            config:
+              - name_prefix = "agent_"
+              - ignore_fs = ["tmpfs", "devtmpfs", "overlay", "squashfs", "iso9660"]
+          - plugin: diskio
+            config:
+              - name_prefix = "agent_"
+              - skip_serial_number = false
+          - plugin: kernel
+            config:
+              - name_prefix = "agent_"
+          - plugin: kernel_vmstat
+            config:
+              - name_prefix = "agent_"
+          - plugin: mem
+            config:
+              - name_prefix = "agent_"
+          - plugin: processes
+            config:
+              - name_prefix = "agent_"
+          - plugin: swap
+            config:
+              - name_prefix = "agent_"
+          - plugin: system
+            config:
+              - name_prefix = "agent_"
+          - plugin: net
+            config:
+              - name_prefix = "agent_"
+          - plugin: netstat
+            config:
+              - name_prefix = "agent_"
+          - plugin: nstat
+            config:
+              - name_prefix = "agent_"
+          - plugin: ntpq
+            config:
+              - name_prefix = "agent_"
+              - dns_lookup = false
+          - plugin: internal
+            config:
+              - name_prefix = "agent_"
+              - collect_memstats = false
+      when: server_type == "guest"
+
+    - name: "Deploy monitor agent for Baremetal" 
+      include_role:
+        name: ansible-telegraf
+      vars:
+        telegraf_plugins_default:
+          - plugin: cpu
+            config:
+              - name_prefix = "agent_"
+              - percpu = true
+              - totalcpu = true
+              - collect_cpu_time = false
+              - report_active = true
+          - plugin: disk
+            config:
+              - name_prefix = "agent_"
+              - ignore_fs = ["tmpfs", "devtmpfs", "overlay", "squashfs", "iso9660"]
+          - plugin: diskio
+            config:
+              - name_prefix = "agent_"
+              - skip_serial_number = false
+          - plugin: sensors
+              - name_prefix = "agent_"
+          - plugin: kernel
+            config:
+              - name_prefix = "agent_"
+          - plugin: kernel_vmstat
+            config:
+              - name_prefix = "agent_"
+          - plugin: mem
+            config:
+              - name_prefix = "agent_"
+          - plugin: processes
+            config:
+              - name_prefix = "agent_"
+          - plugin: swap
+            config:
+              - name_prefix = "agent_"
+          - plugin: system
+            config:
+              - name_prefix = "agent_"
+          - plugin: net
+            config:
+              - name_prefix = "agent_"
+          - plugin: netstat
+            config:
+              - name_prefix = "agent_"
+          - plugin: nstat
+            config:
+              - name_prefix = "agent_"
+          - plugin: ntpq
+            config:
+              - name_prefix = "agent_"
+              - dns_lookup = false
+          - plugin: internal
+            config:
+              - name_prefix = "agent_"
+              - collect_memstats = false
+      when: server_type == "baremetal"
+

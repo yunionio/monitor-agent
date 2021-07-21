@@ -4,15 +4,6 @@ influxdb_url: https://192.168.222.171:30086
 # database name of influxdb
 influxdb_name: telegraf
 
-# id of onecloud vm
-onecloud_vm_id: b18d35f4-5e18-4d1e-87de-c3b98d8371fd
-
-# project id of onecloud vm
-onecloud_tenant_id: a7f2e2a81a1e4850a41eae5f140ceb14
-
-# domain id of onecloud vm
-onecloud_domain_id: default
- 
 telegraf_global_tags: []
 
 telegraf_agent_package_method: offline

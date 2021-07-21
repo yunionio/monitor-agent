@@ -61,10 +61,6 @@
           - plugin: nstat
             config:
               - name_prefix = "agent_"
-          - plugin: ntpq
-            config:
-              - name_prefix = "agent_"
-              - dns_lookup = false
           - plugin: internal
             config:
               - name_prefix = "agent_"
@@ -120,10 +116,6 @@
           - plugin: nstat
             config:
               - name_prefix = "agent_"
-          - plugin: ntpq
-            config:
-              - name_prefix = "agent_"
-              - dns_lookup = false
           - plugin: internal
             config:
               - name_prefix = "agent_"

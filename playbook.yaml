@@ -88,6 +88,7 @@
               - name_prefix = "agent_"
               - skip_serial_number = false
           - plugin: sensors
+            config:
               - name_prefix = "agent_"
           - plugin: kernel
             config:

@@ -14,7 +14,7 @@
           - insecure_skip_verify = true
 
   tasks:
-    - name: "Deploy monitor agent for Guest" 
+    - name: "Deploy monitor agent for Guest"
       include_role:
         name: ansible-telegraf
       vars:
@@ -67,7 +67,14 @@
               - collect_memstats = false
       when: server_type == "guest"
 
-    - name: "Deploy monitor agent for Baremetal" 
+    - block:
+      - name: "Install lm-sensors for Baremetal"
+        include_role:
+          name: lm-sensors
+      ignore_errors: yes
+      when: server_type == "baremetal"
+
+    - name: "Deploy monitor agent for Baremetal"
       include_role:
         name: ansible-telegraf
       vars:

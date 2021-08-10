@@ -71,6 +71,10 @@
       - name: "Install lm-sensors for Baremetal"
         include_role:
           name: lm-sensors
+
+      - name: "Install smartmontools and nvme-cli for Baremetal"
+        include_role:
+          name: smartmontools
       ignore_errors: yes
       when: server_type == "baremetal"
 
@@ -97,6 +101,10 @@
           - plugin: sensors
             config:
               - name_prefix = "agent_"
+          - plugin: smart
+            config:
+              - name_prefix = "agent_"
+              - use_sudo = true
           - plugin: kernel
             config:
               - name_prefix = "agent_"

@@ -1,0 +1,16 @@
+---
+- name: Install smartmontools and nvme-cli
+  package:
+    name:
+    - sudo
+    - smartmontools
+    - nvme-cli
+    state: present
+
+- name: Inject telegraf smart sudo privilege
+  copy:
+    src: 100-telegraf-smart
+    dest: /etc/sudoers.d/100-telegraf-smart
+    owner: root
+    group: root
+    mode: 0400

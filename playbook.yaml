@@ -3,8 +3,8 @@
 
   vars:
     server_type: guest
-    telegraf_agent_version: 1.19.2
-    telegraf_agent_version_patch: yn~be742cbf
+    telegraf_agent_version: 1.19.2-yn
+    telegraf_agent_version_patch: be742cbf
     telegraf_agent_disable_version: (yn-release-1\.5)|(v1\.5\.0~5d6622e)|(v1\.5\.0~yn)
     telegraf_agent_interval: 60
     telegraf_agent_flush_interval: 60

@@ -68,7 +68,55 @@
             config:
               - name_prefix = "agent_"
               - collect_memstats = false
-      when: server_type == "guest"
+      when: 
+        - server_type == "guest"
+        - ansible_facts['os_family'] != "Windows"
+
+    - name: "Deploy monitor agent for Windows Guest"
+      include_role:
+        name: ansible-telegraf
+      vars:
+        telegraf_plugins_default:
+          - plugin: cpu
+            config:
+              - name_prefix = "agent_"
+              - percpu = true
+              - totalcpu = true
+              - collect_cpu_time = false
+              - report_active = true
+          - plugin: disk
+            config:
+              - name_prefix = "agent_"
+              - ignore_fs = ["tmpfs", "devtmpfs", "overlay", "squashfs", "iso9660"]
+          - plugin: diskio
+            config:
+              - name_prefix = "agent_"
+              - skip_serial_number = false
+          - plugin: mem
+            config:
+              - name_prefix = "agent_"
+          - plugin: processes
+            config:
+              - name_prefix = "agent_"
+          - plugin: system
+            config:
+              - name_prefix = "agent_"
+          - plugin: net
+            config:
+              - name_prefix = "agent_"
+          - plugin: netstat
+            config:
+              - name_prefix = "agent_"
+          - plugin: nstat
+            config:
+              - name_prefix = "agent_"
+          - plugin: internal
+            config:
+              - name_prefix = "agent_"
+              - collect_memstats = false
+      when: 
+        - server_type == "guest"
+        -  ansible_facts['os_family'] == "Windows"
 
     - block:
       - name: "Install lm-sensors for Baremetal"

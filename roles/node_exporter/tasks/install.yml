@@ -43,6 +43,8 @@
         src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-{{ go_arch }}.tar.gz"
         dest: "/tmp"
         creates: "/tmp/node_exporter-{{ node_exporter_version }}.linux-{{ go_arch }}/node_exporter"
+        extra_opts:
+          - -zxvf
       delegate_to: localhost
       check_mode: false
 

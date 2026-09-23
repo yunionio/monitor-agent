@@ -9,6 +9,17 @@
     telegraf_agent_interval: 60
     telegraf_agent_flush_interval: 60
     telegraf_agent_omit_hostname: True
+    # Install the telegraf package from the packages shipped inside the
+    # ansibleserver image, so no public repository is needed. Can be overridden
+    # by extra vars (e.g. the ansibleplaybook reference playbook_params).
+    telegraf_agent_package_method: offline
+    telegraf_agent_package_local_dir: /opt/yunion/ansible-install-pkg
+    # Offline runs are assumed to have no access to the packages of the distro,
+    # so tools that are only used by the sensors/smart inputs are not installed
+    # and the matching inputs are left out of telegraf.conf. Set
+    # monitor_agent_install_ext_packages=true to force them on.
+    monitor_agent_offline: "{{ (telegraf_agent_package_method | default('repo')) == 'offline' }}"
+    monitor_agent_install_ext_packages: "{{ not (monitor_agent_offline | bool) }}"
     telegraf_agent_output:
       - type: influxdb
         config:
@@ -127,13 +138,15 @@
         include_role:
           name: smartmontools
       ignore_errors: yes
-      when: server_type == "baremetal"
+      when:
+        - server_type == "baremetal"
+        - monitor_agent_install_ext_packages | bool
 
     - name: "Deploy monitor agent for Baremetal"
       include_role:
         name: ansible-telegraf
       vars:
-        telegraf_plugins_default:
+        telegraf_plugins_baremetal_common:
           - plugin: cpu
             config:
               - name_prefix = "agent_"
@@ -149,13 +162,6 @@
             config:
               - name_prefix = "agent_"
               - skip_serial_number = false
-          - plugin: sensors
-            config:
-              - name_prefix = "agent_"
-          - plugin: smart
-            config:
-              - name_prefix = "agent_"
-              - use_sudo = true
           - plugin: kernel
             config:
               - name_prefix = "agent_"
@@ -187,5 +193,16 @@
             config:
               - name_prefix = "agent_"
               - collect_memstats = false
+        telegraf_plugins_baremetal_ext:
+          - plugin: sensors
+            config:
+              - name_prefix = "agent_"
+          - plugin: smart
+            config:
+              - name_prefix = "agent_"
+              - use_sudo = true
+        telegraf_plugins_default: >-
+          {{ telegraf_plugins_baremetal_common +
+             (telegraf_plugins_baremetal_ext if (monitor_agent_install_ext_packages | bool) else []) }}
       when: server_type == "baremetal"
 

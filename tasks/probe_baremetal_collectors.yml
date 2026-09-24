@@ -1,0 +1,40 @@
+---
+# Look for the optional collectors that are installed through the packages of
+# the distro: lm-sensors provides "sensors" and smartmontools provides
+# "smartctl". Both of them may be unavailable, for instance when the host
+# cannot reach the software repositories.
+#
+# Knowing whether they are actually usable is required, because telegraf fails
+# to start when an input plugin cannot be initialized: [[inputs.sensors]] fails
+# when "sensors" is missing and [[inputs.smart]] fails when "smartctl" is
+# missing, so the matching input must only be configured when the tool is
+# present.
+#
+# The PATH of the service manager (and therefore of telegraf itself) is used
+# instead of the PATH of the remote shell: "smartctl" lives in /usr/sbin and
+# the PATH of a non-login shell does not always contain it.
+
+- name: "Probe | Set the PATH used by the service manager"
+  set_fact:
+    monitor_agent_collector_probe_path: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+- name: "Probe | Look for the lm-sensors tools"
+  shell: command -v sensors
+  environment:
+    PATH: "{{ monitor_agent_collector_probe_path }}"
+  register: monitor_agent_sensors_probe
+  changed_when: false
+  failed_when: false
+
+- name: "Probe | Look for the smartmontools tools"
+  shell: command -v smartctl
+  environment:
+    PATH: "{{ monitor_agent_collector_probe_path }}"
+  register: monitor_agent_smartctl_probe
+  changed_when: false
+  failed_when: false
+
+- name: "Probe | Record the availability of the optional collectors"
+  set_fact:
+    monitor_agent_lm_sensors_present: "{{ (monitor_agent_sensors_probe.rc | default(1) | int) == 0 }}"
+    monitor_agent_smartmontools_present: "{{ (monitor_agent_smartctl_probe.rc | default(1) | int) == 0 }}"

@@ -1,16 +1,31 @@
 ---
+# The tools of this role come from the repositories of the distro, so they may
+# be unavailable when the host cannot reach them. The installation is best
+# effort: it is skipped when the tools are already usable and the caller only
+# configures the sensors input when they really are.
+- name: Detect whether the sensors tools are already available
+  tags: [lm_sensors, sensors]
+  shell: command -v sensors
+  environment:
+    PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  register: lm_sensors_probe
+  changed_when: false
+  failed_when: false
+
 - name: Install lm-sensors
   tags: [lm_sensors, sensors]
   package:
     name: "{{ __lm_sensors_package }}"
     state: present
   register: lm_sensors_install_status
+  when: lm_sensors_probe.rc | default(1) | int != 0
 
 - name: Detect sensors
   tags: [lm_sensors, sensors]
   command: sensors-detect --auto
   changed_when: true
-  when: lm_sensors_install_status.changed or lm_sensors_force_detection | bool
+  when:
+    - (lm_sensors_install_status.changed | default(false)) or (lm_sensors_force_detection | bool)
 
 - name: Configure lm-sensors
   tags: [lm_sensors, sensors]

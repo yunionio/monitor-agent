@@ -14,12 +14,14 @@
     # by extra vars (e.g. the ansibleplaybook reference playbook_params).
     telegraf_agent_package_method: offline
     telegraf_agent_package_local_dir: /opt/yunion/ansible-install-pkg
-    # Offline runs are assumed to have no access to the packages of the distro,
-    # so tools that are only used by the sensors/smart inputs are not installed
-    # and the matching inputs are left out of telegraf.conf. Set
-    # monitor_agent_install_ext_packages=true to force them on.
-    monitor_agent_offline: "{{ (telegraf_agent_package_method | default('repo')) == 'offline' }}"
-    monitor_agent_install_ext_packages: "{{ not (monitor_agent_offline | bool) }}"
+    # The optional collectors (lm-sensors, smartmontools, nvme-cli) come from the
+    # repositories of the distro, so hosts that cannot reach them cannot install
+    # the tools. Installing them is therefore best effort: a failure is ignored
+    # and the inputs of telegraf are only configured for the tools that are
+    # really usable, see tasks/probe_baremetal_collectors.yml. Set it to false to
+    # skip the installation attempts altogether, which avoids waiting for the
+    # timeouts of the repositories on a fully offline host.
+    monitor_agent_install_ext_packages: true
     telegraf_agent_output:
       - type: influxdb
         config:
@@ -129,18 +131,33 @@
         - server_type == "guest"
         -  ansible_facts['os_family'] == "Windows"
 
-    - block:
-      - name: "Install lm-sensors for Baremetal"
-        include_role:
-          name: lm-sensors
+    - name: "Install the optional Baremetal collectors (best effort)"
+      block:
+        - name: "Install lm-sensors for Baremetal"
+          include_role:
+            name: lm-sensors
 
-      - name: "Install smartmontools and nvme-cli for Baremetal"
-        include_role:
-          name: smartmontools
+        - name: "Install smartmontools and nvme-cli for Baremetal"
+          include_role:
+            name: smartmontools
       ignore_errors: yes
       when:
         - server_type == "baremetal"
         - monitor_agent_install_ext_packages | bool
+
+    # Run the probe even when the installation is skipped: the tools may already
+    # be present on the host, in which case the matching inputs are configured.
+    - name: "Probe the optional Baremetal collectors"
+      include_tasks: tasks/probe_baremetal_collectors.yml
+      when: server_type == "baremetal"
+
+    - name: "Report the optional Baremetal collectors"
+      debug:
+        msg: >-
+          lm-sensors {{ 'available' if (monitor_agent_lm_sensors_present | default(false) | bool) else 'not available' }},
+          smartmontools {{ 'available' if (monitor_agent_smartmontools_present | default(false) | bool) else 'not available' }};
+          only the available tools get a telegraf input
+      when: server_type == "baremetal"
 
     - name: "Deploy monitor agent for Baremetal"
       include_role:
@@ -193,16 +210,21 @@
             config:
               - name_prefix = "agent_"
               - collect_memstats = false
-        telegraf_plugins_baremetal_ext:
+        # Each optional input is added on its own: configuring an input whose
+        # tool is missing makes telegraf fail to start, so the two probes of
+        # tasks/probe_baremetal_collectors.yml are checked independently.
+        telegraf_plugins_baremetal_sensors:
           - plugin: sensors
             config:
               - name_prefix = "agent_"
+        telegraf_plugins_baremetal_smart:
           - plugin: smart
             config:
               - name_prefix = "agent_"
               - use_sudo = true
         telegraf_plugins_default: >-
-          {{ telegraf_plugins_baremetal_common +
-             (telegraf_plugins_baremetal_ext if (monitor_agent_install_ext_packages | bool) else []) }}
+          {{ telegraf_plugins_baremetal_common
+             + (telegraf_plugins_baremetal_sensors if (monitor_agent_lm_sensors_present | default(false) | bool) else [])
+             + (telegraf_plugins_baremetal_smart if (monitor_agent_smartmontools_present | default(false) | bool) else []) }}
       when: server_type == "baremetal"
 

@@ -1,4 +1,17 @@
 ---
+# The tools of this role come from the repositories of the distro, so they may
+# be unavailable when the host cannot reach them. The installation is best
+# effort: it is skipped when smartctl is already usable and the sudo privilege
+# is only injected when smartctl really is, since the telegraf smart input is
+# configured with use_sudo.
+- name: Check whether smartctl is already available
+  shell: command -v smartctl
+  environment:
+    PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  register: smartmontools_probe
+  changed_when: false
+  failed_when: false
+
 - name: Install smartmontools and nvme-cli
   package:
     name:
@@ -6,6 +19,15 @@
     - smartmontools
     - nvme-cli
     state: present
+  when: smartmontools_probe.rc | default(1) | int != 0
+
+- name: Check whether smartctl is usable after the installation attempt
+  shell: command -v smartctl
+  environment:
+    PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  register: smartmontools_smartctl_probe
+  changed_when: false
+  failed_when: false
 
 - name: Inject telegraf smart sudo privilege
   copy:
@@ -14,3 +36,4 @@
     owner: root
     group: root
     mode: 0400
+  when: smartmontools_smartctl_probe.rc | default(1) | int == 0

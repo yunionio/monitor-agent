@@ -210,6 +210,24 @@
             config:
               - name_prefix = "agent_"
               - collect_memstats = false
+          - plugin: nvidia_smi
+            config:
+              - name_prefix = "agent_"
+          - plugin: npu_smi
+            config:
+              - name_prefix = "agent_"
+          - plugin: ixsmi
+            config:
+              - name_prefix = "agent_"
+          - plugin: ppusmi
+            config:
+              - name_prefix = "agent_"
+          - plugin: hysmi
+            config:
+              - name_prefix = "agent_"
+          - plugin: xpusmi
+            config:
+              - name_prefix = "agent_"
         # Each optional input is added on its own: configuring an input whose
         # tool is missing makes telegraf fail to start, so the two probes of
         # tasks/probe_baremetal_collectors.yml are checked independently.

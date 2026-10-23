@@ -1,0 +1,87 @@
+---
+# On apt systems the debs matched by bundled_packages_deb_glob are installed
+# first, in one apt-get transaction so packages that depend on each other
+# still configure. Any failure, including no matching deb, falls back to
+# bundled_packages_names. bundled_packages_changed is true when either attempt
+# changes the host; a skipped package task still counts as unchanged.
+- name: Reset bundled package install state
+  set_fact:
+    bundled_packages_deb_install_failed: false
+    bundled_packages_deb_changed: false
+    bundled_packages_changed: false
+    bundled_packages_found_debs: []
+  changed_when: false
+
+- name: Collect bundled deb packages
+  set_fact:
+    bundled_packages_found_debs: "{{ query('fileglob', bundled_packages_files_dir ~ '/' ~ bundled_packages_deb_glob) }}"
+  when: bundled_packages_files_dir | default('') | length > 0
+  changed_when: false
+
+- name: Install bundled deb packages on apt systems
+  when:
+    - (ansible_facts['pkg_mgr'] | default('')) == 'apt'
+    - bundled_packages_found_debs | length > 0
+  block:
+    - name: Create a staging directory for bundled debs
+      tempfile:
+        state: directory
+        prefix: bundled-packages-
+      register: bundled_packages_deb_stage
+      changed_when: false
+
+    - name: Stage bundled deb packages
+      copy:
+        src: "{{ item }}"
+        dest: "{{ bundled_packages_deb_stage.path }}/{{ item | basename }}"
+        mode: "0644"
+      loop: "{{ bundled_packages_found_debs }}"
+      register: bundled_packages_deb_staged
+      changed_when: false
+
+    - name: Install bundled deb packages
+      command:
+        argv: "{{ ['apt-get', 'install', '-y'] + (bundled_packages_deb_staged.results | map(attribute='dest') | list) }}"
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+        LANG: C
+        LC_ALL: C
+      register: bundled_packages_deb_install
+      changed_when: "'0 upgraded, 0 newly installed' not in (bundled_packages_deb_install.stdout | default(''))"
+
+    - name: Record the bundled deb install result
+      set_fact:
+        bundled_packages_deb_changed: "{{ bundled_packages_deb_install.changed | bool }}"
+      changed_when: false
+  rescue:
+    - name: Remember that the bundled deb install failed
+      set_fact:
+        bundled_packages_deb_install_failed: true
+      changed_when: false
+  always:
+    - name: Remove the bundled deb staging directory
+      file:
+        path: "{{ bundled_packages_deb_stage.path }}"
+        state: absent
+      when: bundled_packages_deb_stage is defined and (bundled_packages_deb_stage.path | default('')) | length > 0
+      changed_when: false
+
+- name: Remember that no bundled deb is available
+  set_fact:
+    bundled_packages_deb_install_failed: true
+  when:
+    - (ansible_facts['pkg_mgr'] | default('')) == 'apt'
+    - bundled_packages_found_debs | length == 0
+  changed_when: false
+
+- name: Install packages from the system package manager
+  package:
+    name: "{{ bundled_packages_names }}"
+    state: present
+  register: bundled_packages_install_status
+  when: (ansible_facts['pkg_mgr'] | default('')) != 'apt' or (bundled_packages_deb_install_failed | bool)
+
+- name: Record whether the package installation changed the host
+  set_fact:
+    bundled_packages_changed: "{{ (bundled_packages_deb_changed | bool) or (bundled_packages_install_status.changed | default(false) | bool) }}"
+  changed_when: false

@@ -1,8 +1,8 @@
 ---
-# The tools of this role come from the repositories of the distro, so they may
-# be unavailable when the host cannot reach them. The installation is best
-# effort: it is skipped when the tools are already usable and the caller only
-# configures the sensors input when they really are.
+# Installation is best effort and is skipped when the tools are already usable.
+# Apt hosts try the lm-sensors_*.deb packages in files/ first, then the distro
+# package. The caller only configures the sensors input when the tools really
+# are usable.
 - name: Detect whether the sensors tools are already available
   tags: [lm_sensors, sensors]
   shell: command -v sensors
@@ -12,12 +12,26 @@
   changed_when: false
   failed_when: false
 
+# Captured here because role_path and role vars belong to this role. Inside
+# bundled-packages, role_path points at that role.
+- name: Record lm-sensors package inputs
+  tags: [lm_sensors, sensors]
+  set_fact:
+    lm_sensors_files_dir: "{{ role_path }}/files"
+    lm_sensors_package_name: "{{ __lm_sensors_package }}"
+  changed_when: false
+
 - name: Install lm-sensors
   tags: [lm_sensors, sensors]
-  package:
-    name: "{{ __lm_sensors_package }}"
-    state: present
-  register: lm_sensors_install_status
+  include_role:
+    name: bundled-packages
+    apply:
+      tags: [lm_sensors, sensors]
+  vars:
+    bundled_packages_files_dir: "{{ lm_sensors_files_dir }}"
+    bundled_packages_deb_glob: "lm-sensors_*.deb"
+    bundled_packages_names:
+      - "{{ lm_sensors_package_name }}"
   when: lm_sensors_probe.rc | default(1) | int != 0
 
 - name: Detect sensors
@@ -25,7 +39,7 @@
   command: sensors-detect --auto
   changed_when: true
   when:
-    - (lm_sensors_install_status.changed | default(false)) or (lm_sensors_force_detection | bool)
+    - (bundled_packages_changed | default(false) | bool) or (lm_sensors_force_detection | bool)
 
 - name: Configure lm-sensors
   tags: [lm_sensors, sensors]

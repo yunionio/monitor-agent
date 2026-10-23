@@ -1,0 +1,12 @@
+---
+# Absolute path, on the Ansible controller, of the directory that holds the
+# bundled .deb packages. The caller must pass its own role files directory;
+# role_path inside this role points here, not at the caller.
+bundled_packages_files_dir: ""
+
+# Glob, relative to bundled_packages_files_dir, of the debs to install first.
+bundled_packages_deb_glob: "*.deb"
+
+# Package names for the system package manager. Used when the host is not an
+# apt system, and when the bundled deb install does not succeed.
+bundled_packages_names: []

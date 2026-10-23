@@ -130,7 +130,13 @@
               - collect_memstats = false
       when: 
         - server_type == "guest"
-        -  ansible_facts['os_family'] == "Windows"
+        - ansible_facts['os_family'] == "Windows"
+
+    - debug:
+        msg: "{{ monitor_agent_install_ext_packages }}"
+
+    - debug:
+        msg: "{{ server_type }}"
 
     - name: "Install the optional Baremetal collectors (best effort)"
       block:
@@ -142,9 +148,6 @@
           include_role:
             name: smartmontools
       ignore_errors: yes
-      when:
-        - server_type == "baremetal"
-        - monitor_agent_install_ext_packages | bool
 
     # Run the probe even when the installation is skipped: the tools may already
     # be present on the host, in which case the matching inputs are configured.

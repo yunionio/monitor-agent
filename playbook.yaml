@@ -130,7 +130,13 @@
               - collect_memstats = false
       when: 
         - server_type == "guest"
-        -  ansible_facts['os_family'] == "Windows"
+        - ansible_facts['os_family'] == "Windows"
+
+    - debug:
+        msg: "{{ monitor_agent_install_ext_packages }}"
+
+    - debug:
+        msg: "{{ server_type }}"
 
     - name: "Install the optional Baremetal collectors (best effort)"
       block:

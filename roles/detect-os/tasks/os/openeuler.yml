@@ -1,0 +1,43 @@
+---
+- name: Check whether the openEuler repository is reachable
+  uri:
+    url: https://repo.openeuler.org/
+    method: GET
+    follow_redirects: all
+    status_code: [200, 301, 302, 303, 307, 308]
+    timeout: 10
+    return_content: false
+  register: detect_os_online_probe
+  failed_when: false
+  changed_when: false
+
+- name: Record openEuler as online
+  set_fact:
+    online_status: true
+  when: (detect_os_online_probe.status | default(0) | int) in [200, 301, 302, 303, 307, 308]
+
+- name: Record openEuler as offline
+  set_fact:
+    online_status: false
+  when: (detect_os_online_probe.status | default(0) | int) not in [200, 301, 302, 303, 307, 308]
+
+- name: Record the OS name
+  set_fact:
+    offline_os_name: "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}"
+    offline_package_tool: "rpm"
+
+- name: Setup offline yum repos
+  shell: |
+    sed -i 's/^enabled=1/enabled=0/g' /etc/yum.repos.d/*.repo
+  become: true
+  args:
+    executable: /bin/bash
+  when:
+    - online_status is defined and not online_status
+
+- name: Update yum repo cache
+  shell: |
+    yum makecache
+  become: true
+  args:
+    executable: /bin/bash

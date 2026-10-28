@@ -1,8 +1,8 @@
 ---
 # Installation is best effort: it is skipped when smartctl is already usable
 # and the sudo privilege is only injected when smartctl really is, since the
-# telegraf smart input is configured with use_sudo. Apt hosts try the deb
-# packages in files/ first, then the distro packages.
+# telegraf smart input is configured with use_sudo. Offline hosts install the
+# debs under files/ via bundled-packages. Online hosts install the distro packages.
 - name: Check whether smartctl is already available
   shell: command -v smartctl
   environment:
@@ -15,10 +15,10 @@
 # bundled-packages, role_path points at that role.
 - name: Record the smartmontools files directory
   set_fact:
-    smartmontools_files_dir: "{{ role_path }}/files/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version | lower }}"
+    smartmontools_files_dir: "{{ role_path }}/files/{{ offline_os_name }}"
   changed_when: false
 
-- name: Install smartmontools and nvme-cli
+- name: Install smartmontools and nvme-cli from bundled packages
   include_role:
     name: bundled-packages
   vars:
@@ -27,7 +27,20 @@
       - sudo
       - smartmontools
       - nvme-cli
-  when: smartmontools_probe.rc | default(1) | int != 0
+  when:
+    - smartmontools_probe.rc | default(1) | int != 0
+    - not (online_status | default(true) | bool)
+
+- name: Install smartmontools and nvme-cli
+  package:
+    name:
+      - sudo
+      - smartmontools
+      - nvme-cli
+    state: present
+  when:
+    - smartmontools_probe.rc | default(1) | int != 0
+    - online_status | default(true) | bool
 
 - name: Check whether smartctl is usable after the installation attempt
   shell: command -v smartctl

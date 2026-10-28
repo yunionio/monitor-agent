@@ -15,7 +15,7 @@
 # bundled-packages, role_path points at that role.
 - name: Record the smartmontools files directory
   set_fact:
-    smartmontools_files_dir: "{{ role_path }}/files"
+    smartmontools_files_dir: "{{ role_path }}/files/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version | lower }}"
   changed_when: false
 
 - name: Install smartmontools and nvme-cli

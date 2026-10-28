@@ -17,7 +17,7 @@
 - name: Record lm-sensors package inputs
   tags: [lm_sensors, sensors]
   set_fact:
-    lm_sensors_files_dir: "{{ role_path }}/files"
+    lm_sensors_files_dir: "{{ role_path }}/files/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version | lower }}"
     lm_sensors_package_name: "{{ __lm_sensors_package }}"
   changed_when: false
 

@@ -1,8 +1,0 @@
----
-- name: Include openeuler.yml
-  include_tasks: openeuler.yml
-
-- name: Record the OS name
-  set_fact:
-    offline_os_name: "openeuler-{{ ansible_distribution_major_version | lower }}"
-    offline_package_tool: "rpm"

@@ -39,9 +39,17 @@
     - online_status is defined and not online_status
 
 - name: Update apt cache
-  shell: |
-    apt-get update
-    apt --fix-broken install -y
+  command: apt-get update
   become: true
-  args:
-    executable: /bin/bash
+  changed_when: false
+
+- name: Repair broken package dependencies
+  command: apt-get install -f -y
+  become: true
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  register: detect_os_apt_fix
+  failed_when: false
+  changed_when: >-
+    detect_os_apt_fix.rc == 0
+    and '0 upgraded, 0 newly installed' not in (detect_os_apt_fix.stdout | default(''))

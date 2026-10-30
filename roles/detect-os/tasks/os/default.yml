@@ -1,5 +1,5 @@
 ---
-- name: Record an unknown distribution as offline
+- name: Record an unknown distribution {{ ansible_distribution }} as offline
   set_fact:
     online_status: true
     offline_os_name: "{{ ansible_distribution | default('unknown') | lower }}"

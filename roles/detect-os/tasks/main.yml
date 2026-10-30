@@ -1,0 +1,29 @@
+---
+- name: Display ansible_distribution
+  debug:
+    var: ansible_distribution
+
+- name: Display ansible_distribution_major_version
+  debug:
+    var: ansible_distribution_major_version
+
+- name: Display ansible_distribution_minor_version
+  debug:
+    var: ansible_distribution_minor_version
+
+- name: Display ansible_distribution_version
+  debug:
+    var: ansible_distribution_version
+
+- name: Display ansible_distribution_release
+  debug:
+    var: ansible_distribution_release
+
+- name: Include profile for {{ ansible_distribution }} OS
+  include_tasks: "{{ item }}"
+  with_first_found:
+    - files:
+        - "os/{{ ansible_distribution | lower }}.yml"
+        - os/default.yml
+      paths:
+        - "{{ role_path }}/tasks"

@@ -31,6 +31,10 @@
           - insecure_skip_verify = true
 
   tasks:
+    - name: detect-os
+      include_role:
+        name: detect-os
+
     - name: "Deploy monitor agent for Guest"
       include_role:
         name: ansible-telegraf
@@ -133,10 +137,10 @@
         - ansible_facts['os_family'] == "Windows"
 
     - debug:
-        msg: "{{ monitor_agent_install_ext_packages }}"
+        msg: "monitor_agent_install_ext_packages: {{ monitor_agent_install_ext_packages }}"
 
     - debug:
-        msg: "{{ server_type }}"
+        msg: "server_type: {{ server_type }}"
 
     - name: "Install the optional Baremetal collectors (best effort)"
       block:

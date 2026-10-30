@@ -1,0 +1,6 @@
+---
+- name: Record an unknown distribution {{ ansible_distribution }} as offline
+  set_fact:
+    online_status: true
+    offline_os_name: "{{ ansible_distribution | default('unknown') | lower }}"
+    offline_package_tool: "rpm"

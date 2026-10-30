@@ -1,0 +1,55 @@
+---
+- name: Check whether the Ubuntu archive is reachable
+  uri:
+    url: https://archive.ubuntu.com/
+    method: GET
+    follow_redirects: all
+    status_code: [200, 301, 302, 303, 307, 308]
+    timeout: 10
+    return_content: false
+  register: detect_os_online_probe
+  failed_when: false
+  changed_when: false
+
+- name: Record Ubuntu as online
+  set_fact:
+    online_status: true
+  when: (detect_os_online_probe.status | default(0) | int) in [200, 301, 302, 303, 307, 308]
+
+- name: Record Ubuntu as offline
+  set_fact:
+    online_status: false
+  when: (detect_os_online_probe.status | default(0) | int) not in [200, 301, 302, 303, 307, 308]
+
+- name: Record the OS name
+  set_fact:
+    offline_os_name: "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}"
+    offline_package_tool: "dpkg"
+
+- name: Setup offline apt sources
+  shell: |
+    sed -i 's/^deb/# deb/g' /etc/apt/sources.list
+    if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+      mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.disabled
+    fi
+  become: true
+  args:
+    executable: /bin/bash
+  when:
+    - online_status is defined and not online_status
+
+- name: Update apt cache
+  command: apt-get update
+  become: true
+  changed_when: false
+
+- name: Repair broken package dependencies
+  command: apt-get install -f -y
+  become: true
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  register: detect_os_apt_fix
+  failed_when: false
+  changed_when: >-
+    detect_os_apt_fix.rc == 0
+    and '0 upgraded, 0 newly installed' not in (detect_os_apt_fix.stdout | default(''))

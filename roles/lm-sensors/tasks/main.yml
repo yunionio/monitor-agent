@@ -1,8 +1,8 @@
 ---
 # Installation is best effort and is skipped when the tools are already usable.
-# Apt hosts try the lm-sensors_*.deb packages in files/ first, then the distro
-# package. The caller only configures the sensors input when the tools really
-# are usable.
+# Offline hosts install the debs under files/ via bundled-packages. Online hosts
+# install the distro package. The caller only configures the sensors input when
+# the tools really are usable.
 - name: Detect whether the sensors tools are already available
   tags: [lm_sensors, sensors]
   shell: command -v sensors
@@ -17,11 +17,11 @@
 - name: Record lm-sensors package inputs
   tags: [lm_sensors, sensors]
   set_fact:
-    lm_sensors_files_dir: "{{ role_path }}/files/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version | lower }}"
+    lm_sensors_files_dir: "{{ role_path }}/files/{{ offline_os_name }}"
     lm_sensors_package_name: "{{ __lm_sensors_package }}"
   changed_when: false
 
-- name: Install lm-sensors
+- name: Install lm-sensors from bundled packages
   tags: [lm_sensors, sensors]
   include_role:
     name: bundled-packages
@@ -29,17 +29,28 @@
       tags: [lm_sensors, sensors]
   vars:
     bundled_packages_files_dir: "{{ lm_sensors_files_dir }}"
-    bundled_packages_deb_glob: "lm-sensors_*.deb"
     bundled_packages_names:
       - "{{ lm_sensors_package_name }}"
-  when: lm_sensors_probe.rc | default(1) | int != 0
+  when:
+    - lm_sensors_probe.rc | default(1) | int != 0
+    - not (online_status | default(true) | bool)
+
+- name: Install lm-sensors
+  tags: [lm_sensors, sensors]
+  package:
+    name: "{{ lm_sensors_package_name }}"
+    state: present
+  register: lm_sensors_install_status
+  when:
+    - lm_sensors_probe.rc | default(1) | int != 0
+    - online_status | default(true) | bool
 
 - name: Detect sensors
   tags: [lm_sensors, sensors]
   command: sensors-detect --auto
   changed_when: true
   when:
-    - (bundled_packages_changed | default(false) | bool) or (lm_sensors_force_detection | bool)
+    - (lm_sensors_install_status.changed | default(false) | bool) or (bundled_packages_changed | default(false) | bool) or (lm_sensors_force_detection | bool)
 
 - name: Configure lm-sensors
   tags: [lm_sensors, sensors]

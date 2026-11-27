@@ -5,150 +5,47 @@
     server_type: guest
     telegraf_agent_version: 1.36.4-yn
     telegraf_agent_version_patch: 7fe920c9
-    telegraf_agent_disable_version: (yn-release-1\.5)|(v1\.5\.0~5d6622e)|(v1\.5\.0~yn)
-    telegraf_agent_interval: 60
-    telegraf_agent_flush_interval: 60
-    telegraf_agent_omit_hostname: True
-    # Install the telegraf package from the packages shipped inside the
-    # ansibleserver image, so no public repository is needed. Can be overridden
-    # by extra vars (e.g. the ansibleplaybook reference playbook_params).
+    telegraf_agent_disable_version: (yn-release-1\\.5)|(v1\\.5\\.0~5d6622e)|(v1\\.5\\.0~yn)
+    # Install the Telegraf package from packages shipped in the ansibleserver image.
     telegraf_agent_package_method: offline
     telegraf_agent_package_local_dir: /opt/yunion/ansible-install-pkg
     telegraf_agent_package_state: latest
-    # The optional collectors (lm-sensors, smartmontools, nvme-cli) come from the
-    # repositories of the distro, so hosts that cannot reach them cannot install
-    # the tools. Installing them is therefore best effort: a failure is ignored
-    # and the inputs of telegraf are only configured for the tools that are
-    # really usable, see tasks/probe_baremetal_collectors.yml. Set it to false to
-    # skip the installation attempts altogether, which avoids waiting for the
-    # timeouts of the repositories on a fully offline host.
+    # Optional collectors are installed best-effort and enabled only after probing.
     monitor_agent_install_ext_packages: true
-    telegraf_agent_output:
-      - type: influxdb
-        config:
-          - urls = ["{{ influxdb_url }}"]
-          - database = "{{ influxdb_name }}"
-          - insecure_skip_verify = true
 
   tasks:
+    - name: Load shared Cloudpods Telegraf configuration
+      include_vars:
+        file: "{{ playbook_dir }}/cloudpods-telegraf-vars.json"
+
     - name: detect-os
       include_role:
         name: detect-os
 
-    - name: "Deploy monitor agent for Guest"
+    - name: Deploy monitor agent for Linux Guest
       include_role:
         name: ansible-telegraf
       vars:
-        telegraf_plugins_default:
-          - plugin: cpu
-            config:
-              - name_prefix = "agent_"
-              - percpu = true
-              - totalcpu = true
-              - collect_cpu_time = false
-              - report_active = true
-          - plugin: disk
-            config:
-              - name_prefix = "agent_"
-              - ignore_fs = ["tmpfs", "devtmpfs", "overlay", "squashfs", "iso9660"]
-          - plugin: diskio
-            config:
-              - name_prefix = "agent_"
-              - skip_serial_number = false
-          - plugin: kernel
-            config:
-              - name_prefix = "agent_"
-          - plugin: kernel_vmstat
-            config:
-              - name_prefix = "agent_"
-          - plugin: mem
-            config:
-              - name_prefix = "agent_"
-          - plugin: processes
-            config:
-              - name_prefix = "agent_"
-          - plugin: swap
-            config:
-              - name_prefix = "agent_"
-          - plugin: system
-            config:
-              - name_prefix = "agent_"
-          - plugin: net
-            config:
-              - name_prefix = "agent_"
-          - plugin: netstat
-            config:
-              - name_prefix = "agent_"
-          - plugin: nstat
-            config:
-              - name_prefix = "agent_"
-          - plugin: internal
-            config:
-              - name_prefix = "agent_"
-              - collect_memstats = false
-      when: 
+        telegraf_plugins_default: "{{ cloudpods_telegraf_profiles.guest_linux }}"
+      when:
         - server_type == "guest"
         - ansible_facts['os_family'] != "Windows"
 
-    - name: "Deploy monitor agent for Windows Guest"
+    - name: Deploy monitor agent for Windows Guest
       include_role:
         name: ansible-telegraf
       vars:
-        telegraf_plugins_default:
-          - plugin: cpu
-            config:
-              - name_prefix = "agent_"
-              - percpu = true
-              - totalcpu = true
-              - collect_cpu_time = false
-              - report_active = true
-          - plugin: disk
-            config:
-              - name_prefix = "agent_"
-              - ignore_fs = ["tmpfs", "devtmpfs", "overlay", "squashfs", "iso9660"]
-          - plugin: diskio
-            config:
-              - name_prefix = "agent_"
-              - skip_serial_number = false
-          - plugin: mem
-            config:
-              - name_prefix = "agent_"
-          - plugin: processes
-            config:
-              - name_prefix = "agent_"
-          - plugin: system
-            config:
-              - name_prefix = "agent_"
-          - plugin: net
-            config:
-              - name_prefix = "agent_"
-          - plugin: netstat
-            config:
-              - name_prefix = "agent_"
-          - plugin: nstat
-            config:
-              - name_prefix = "agent_"
-          - plugin: internal
-            config:
-              - name_prefix = "agent_"
-              - collect_memstats = false
-      when: 
+        telegraf_plugins_default: "{{ cloudpods_telegraf_profiles.guest_windows }}"
+      when:
         - server_type == "guest"
         - ansible_facts['os_family'] == "Windows"
 
-    - debug:
-        msg: "monitor_agent_install_ext_packages: {{ monitor_agent_install_ext_packages }}"
-
-    - debug:
-        msg: "server_type: {{ server_type }}"
-
-    - name: "Install the optional Baremetal collectors (best effort)"
+    - name: Install optional Baremetal collectors (best effort)
       block:
-        - name: "Install lm-sensors for Baremetal"
+        - name: Install lm-sensors for Baremetal
           include_role:
             name: lm-sensors
-
-        - name: "Install smartmontools and nvme-cli for Baremetal"
+        - name: Install smartmontools and nvme-cli for Baremetal
           include_role:
             name: smartmontools
       ignore_errors: yes
@@ -156,107 +53,27 @@
         - server_type == "baremetal"
         - monitor_agent_install_ext_packages | bool
 
-    # Run the probe even when the installation is skipped: the tools may already
-    # be present on the host, in which case the matching inputs are configured.
-    - name: "Probe the optional Baremetal collectors"
+    # Always probe: the tools may already be installed when package installation is skipped.
+    - name: Probe optional Baremetal collectors
       include_tasks: tasks/probe_baremetal_collectors.yml
       when: server_type == "baremetal"
 
-    - name: "Report the optional Baremetal collectors"
+    - name: Report optional Baremetal collectors
       debug:
         msg: >-
           lm-sensors {{ 'available' if (monitor_agent_lm_sensors_present | default(false) | bool) else 'not available' }},
           smartmontools {{ 'available' if (monitor_agent_smartmontools_present | default(false) | bool) else 'not available' }};
-          only the available tools get a telegraf input
+          only available tools get a telegraf input
       when: server_type == "baremetal"
 
-    - name: "Deploy monitor agent for Baremetal"
+    - name: Deploy monitor agent for Baremetal
       include_role:
         name: ansible-telegraf
       vars:
-        telegraf_plugins_baremetal_common:
-          - plugin: cpu
-            config:
-              - name_prefix = "agent_"
-              - percpu = true
-              - totalcpu = true
-              - collect_cpu_time = false
-              - report_active = true
-          - plugin: disk
-            config:
-              - name_prefix = "agent_"
-              - ignore_fs = ["tmpfs", "devtmpfs", "overlay", "squashfs", "iso9660"]
-          - plugin: diskio
-            config:
-              - name_prefix = "agent_"
-              - skip_serial_number = false
-          - plugin: kernel
-            config:
-              - name_prefix = "agent_"
-          - plugin: kernel_vmstat
-            config:
-              - name_prefix = "agent_"
-          - plugin: mem
-            config:
-              - name_prefix = "agent_"
-          - plugin: processes
-            config:
-              - name_prefix = "agent_"
-          - plugin: swap
-            config:
-              - name_prefix = "agent_"
-          - plugin: system
-            config:
-              - name_prefix = "agent_"
-          - plugin: net
-            config:
-              - name_prefix = "agent_"
-          - plugin: netstat
-            config:
-              - name_prefix = "agent_"
-          - plugin: nstat
-            config:
-              - name_prefix = "agent_"
-          - plugin: internal
-            config:
-              - name_prefix = "agent_"
-              - collect_memstats = false
-          - plugin: nvidia_smi
-            config:
-              - name_prefix = "agent_"
-          - plugin: npu_smi
-            config:
-              - name_prefix = "agent_"
-          - plugin: ixsmi
-            config:
-              - name_prefix = "agent_"
-          - plugin: ppusmi
-            config:
-              - name_prefix = "agent_"
-          - plugin: hysmi
-            config:
-              - name_prefix = "agent_"
-          - plugin: xpusmi
-            config:
-              - name_prefix = "agent_"
-          - plugin: brsmi
-            config:
-              - name_prefix = "agent_"
-        # Each optional input is added on its own: configuring an input whose
-        # tool is missing makes telegraf fail to start, so the two probes of
-        # tasks/probe_baremetal_collectors.yml are checked independently.
-        telegraf_plugins_baremetal_sensors:
-          - plugin: sensors
-            config:
-              - name_prefix = "agent_"
-        telegraf_plugins_baremetal_smart:
-          - plugin: smart
-            config:
-              - name_prefix = "agent_"
-              - use_sudo = true
         telegraf_plugins_default: >-
-          {{ telegraf_plugins_baremetal_common
-             + (telegraf_plugins_baremetal_sensors if (monitor_agent_lm_sensors_present | default(false) | bool) else [])
-             + (telegraf_plugins_baremetal_smart if (monitor_agent_smartmontools_present | default(false) | bool) else []) }}
+          {{ cloudpods_telegraf_profiles.baremetal_linux
+             + ([{'plugin': 'sensors', 'config': ['name_prefix = "agent_"']}]
+                if (monitor_agent_lm_sensors_present | default(false) | bool) else [])
+             + ([{'plugin': 'smart', 'config': ['name_prefix = "agent_"', 'use_sudo = true']}]
+                if (monitor_agent_smartmontools_present | default(false) | bool) else []) }}
       when: server_type == "baremetal"
-
